@@ -20,7 +20,34 @@ async function run() {
 
         const productCollection = client.db("kidsToysStock").collection("products");
 
+        app.post("/uploadPd", async (req, res) => {
+            const product = req.body;
+            // console.log(product);
+            const result = await productCollection.insertOne(product);
+            res.send({ success: 'Product Upload Successfully' })
+        });
 
+        // products api
+        app.get('/product', async (req, res) => {
+            const query = {};
+            const cursor = productCollection.find(query);
+            const products = await cursor.toArray();
+            res.send(products);
+        });
+
+        app.get('/product/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const product = await productCollection.findOne(query);
+            res.send(product);
+        });
+
+        // POST
+        app.post('/product', async (req, res) => {
+            const newProduct = req.body;
+            const result = await productCollection.insertOne(newProduct);
+            res.send(result);
+        });
 
         /*   // DELETE
           app.delete('/product/:id', async (req, res) => {
