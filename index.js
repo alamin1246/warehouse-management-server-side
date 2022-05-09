@@ -52,7 +52,7 @@ async function run() {
             const product = req.body;
             // console.log(product);
             const result = await productCollection.insertOne(product);
-            res.send({ success: 'Product Upload Successfully' })
+            res.send({ success: 'Product Upload Successfully work' })
         });
 
         // products api
