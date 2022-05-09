@@ -86,7 +86,7 @@ async function run() {
         });
 
         // UPDATE
-        app.update('/update/:id', async (req, res) => {
+        app.put('/update/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await productCollection.updateOne(query);
