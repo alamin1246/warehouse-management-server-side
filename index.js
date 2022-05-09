@@ -100,7 +100,7 @@ async function run() {
 run().catch(console.dir);
 
 app.get('/', (req, res) => {
-    res.send('Successfully running Kids Toys Stock Management');
+    res.send('Successfully running Kids Toys Stock Management System');
 });
 app.listen(port, () => {
     console.log('Listen server Running on port', port);
