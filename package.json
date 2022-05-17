@@ -1,18 +1,24 @@
 {
-  "name": "kids-toys-stock-management-server",
+  "name": "warehouse-management-server-side",
   "version": "1.0.0",
+  "description": "warehouse management server",
   "main": "index.js",
-  "license": "MIT",
   "scripts": {
     "start": "node index.js",
-    "start-dev": "nodemon index.js",
-    "test": "echo \"Error: test specified\" && exit 1"
+    "start-dev": "nodemon index.js"
   },
+  "keywords": [],
+  "author": "alamin hossain",
+  "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",
-    "express": "^4.18.1",
+    "express": "^4.18.0",
     "jsonwebtoken": "^8.5.1",
     "mongodb": "^4.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.16"
   }
 }

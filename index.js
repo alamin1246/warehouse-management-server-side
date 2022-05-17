@@ -1,130 +1,151 @@
-const express = require('express');
-const cors = require('cors');
+const express = require("express");
+const cors = require("cors");
+const { MongoClient, ServerApiVersion } = require("mongodb");
+// const bcrypt = require("bcryptjs");
+const mongodb = require("mongodb");
+const jwt = require("jsonwebtoken");
+const req = require("express/lib/request");
+const res = require("express/lib/response");
+require("dotenv").config();
+// app
 const app = express();
-require('dotenv').config();
-const port = process.env.PORT || 5000;
 
 // middleware
 app.use(cors());
 app.use(express.json());
 
-function verifyJWT(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-        return res.status(401).send({ message: 'unauthorized access' });
+const verifyUser = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "unauthorized user" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden User" });
+    } else {
+      req.decoded = decoded;
+      next();
     }
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(403).send({ message: 'Forbidden access' });
-        }
-        console.log('decoded', decoded);
-        req.decoded = decoded;
-        next();
-    })
-    // console.log('inside verifyJWT', authHeader);
+  });
+};
 
-}
+// connect with mogodb
 
-
-const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.vmphq.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+const client = new MongoClient(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverApi: ServerApiVersion.v1,
+});
 
-async function run() {
-    try {
-        await client.connect();
-        console.log('database connected successfully');
+const run = async () => {
+  try {
+    await client.connect();
+    const inventoryCollection = client
+      .db("kidsToysStock")
+      .collection("products");
 
-        const productCollection = client.db("kidsToysStock").collection("products");
+    // get user access token
+    app.post("/login", async (req, res) => {
+      const user = req.body;
+      const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_KEY, {
+        expiresIn: "1d",
+      });
+      res.send({ accessToken });
+    });
 
+    app.get("/inventory-items", async (req, res) => {
+      const qurey = {};
+      const cursor = inventoryCollection.find(qurey);
+      const inventoryItems = await cursor.limit(6).toArray();
 
-        //AUTH
-        app.post('/login', async (req, res) => {
-            const user = req.body;
-            const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-                expiresIn: '1d'
-            });
-            res.send({ accessToken });
-        });
+      res.send(inventoryItems);
+    });
+    app.get("/all-inventory-items", async (req, res) => {
+      const qurey = {};
+      const cursor = inventoryCollection.find(qurey);
+      const inventoryItems = await cursor.toArray();
 
-        app.post("/uploadPd", async (req, res) => {
-            const product = req.body;
-            // console.log(product);
-            const result = await productCollection.insertOne(product);
-            res.send({ success: 'Product Upload Successfully work' })
-        });
+      res.send(inventoryItems);
+    });
+    app.get("/manage-inventory/", async (req, res) => {
+      const id = req.params.id;
+      const qurey = { _id: mongodb.ObjectId(id) };
+      const cursor = inventoryCollection.find(qurey);
+      const inventoryItems = await cursor.toArray();
 
-        // products api
-        app.get('/products', async (req, res) => {
-            const query = {};
-            const cursor = productCollection.find(query);
-            const products = await cursor.toArray();
-            res.send(products);
-        });
+      res.send(inventoryItems);
+    });
 
-        app.get('/products/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const product = await productCollection.findOne(query);
-            res.send(product);
-        });
+    // Item Details Api
+    app.get("/inventory/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: mongodb.ObjectId(id) };
+      const result = await inventoryCollection.findOne(query);
+      res.send(result);
+    });
 
-        // POST
-        app.post('/products', async (req, res) => {
-            const newProduct = req.body;
-            const result = await productCollection.insertOne(newProduct);
-            res.send(result);
-        });
+    // user items get api
+    app.get("/my-items", verifyUser, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const email = req.query.email;
+      const qurey = { email: email };
 
-        // DELETE
-        app.delete('/delete/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const result = await productCollection.deleteOne(query);
-            res.send(result);
-        });
+      if (email === decodedEmail) {
+        const cursor = inventoryCollection.find(qurey);
+        const myItems = await cursor.toArray();
 
-        // UPDATE
-        app.put('/update/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const result = await productCollection.updateOne(query);
-            res.send(result);
-        });
+        res.send(myItems);
+      } else {
+        return res.status(403).send({ message: "Forbidden User" });
+      }
+    });
 
-        // item collection api
+    // POST New Item
+    app.post("/new-inventory-item", async (req, res) => {
+      const newItem = req.body;
 
-        app.get('/item', verifyJWT, async (req, res) => {
-            const decodedEmail = req.decoded.email;
-            const email = req.query.email;
-            console.log(email);
-            if (email === decodedEmail) {
-                const query = { email: email };
-                const cursor = itemCollection.find(query);
-                const items = await cursor.toArray();
-                res.send(items);
-            }
-            else {
-                res.status(403).send({ message: 'forbidden access' })
-            }
-        })
+      const result = await inventoryCollection.insertOne(newItem);
+      res.send(result);
+    });
 
-        app.post('/item', async (req, res) => {
-            const item = req.body;
-            const result = await itemCollection.insertOne(item);
-            res.send(result);
-        })
+    // update stock  quantity
+    app.put("/inventory-items/:id", async (req, res) => {
+      const id = req.params.id;
+      const newQuantity = req.body;
 
-    } finally {
-        // await client.close();
-    }
-}
+      const filter = { _id: mongodb.ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          quantity: newQuantity.quantity,
+        },
+      };
+      const result = await inventoryCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+
+      res.send(result);
+    });
+
+    // delete stock item
+    app.delete("/inventory-items/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: mongodb.ObjectId(id) };
+      const result = await inventoryCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.get("/", async (req, res) => {
+      res.send("Kids Toys Stock management server");
+    });
+  } finally {
+  }
+};
 run().catch(console.dir);
 
-app.get('/', (req, res) => {
-    res.send('Successfully running Kids Toys Stock Management System');
-});
-app.listen(port, () => {
-    console.log('Listen server Running on port', port);
-})
+const port = process.env.PORT || 5000;
+app.listen(port, () => console.log("Listening Kids Toys Stock on port:", port));
