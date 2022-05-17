@@ -140,7 +140,7 @@ const run = async () => {
     });
 
     app.get("/", async (req, res) => {
-      res.send("Kids Toys Stock management server");
+      res.send("Kids Toys Stock management server successfully Run");
     });
   } finally {
   }
