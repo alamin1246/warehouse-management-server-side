@@ -56,23 +56,23 @@ const run = async () => {
     });
 
     app.get("/inventory-items", async (req, res) => {
-      const qurey = {};
-      const cursor = inventoryCollection.find(qurey);
+      const query = {};
+      const cursor = inventoryCollection.find(query);
       const inventoryItems = await cursor.limit(6).toArray();
 
       res.send(inventoryItems);
     });
     app.get("/all-inventory-items", async (req, res) => {
-      const qurey = {};
-      const cursor = inventoryCollection.find(qurey);
+      const query = {};
+      const cursor = inventoryCollection.find(query);
       const inventoryItems = await cursor.toArray();
 
       res.send(inventoryItems);
     });
     app.get("/manage-inventory/", async (req, res) => {
       const id = req.params.id;
-      const qurey = { _id: mongodb.ObjectId(id) };
-      const cursor = inventoryCollection.find(qurey);
+      const query = { _id: mongodb.ObjectId(id) };
+      const cursor = inventoryCollection.find(query);
       const inventoryItems = await cursor.toArray();
 
       res.send(inventoryItems);
@@ -90,10 +90,10 @@ const run = async () => {
     app.get("/my-items", verifyUser, async (req, res) => {
       const decodedEmail = req.decoded.email;
       const email = req.query.email;
-      const qurey = { email: email };
+      const query = { email: email };
 
       if (email === decodedEmail) {
-        const cursor = inventoryCollection.find(qurey);
+        const cursor = inventoryCollection.find(query);
         const myItems = await cursor.toArray();
 
         res.send(myItems);
